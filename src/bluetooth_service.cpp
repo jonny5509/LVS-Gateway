@@ -1,8 +1,8 @@
 #include "bluetooth_service.h"
 
 void bluetooth_service_init() {
-  // Initialize the NimBLE device with the name expected by the gateway profile.
-  NimBLEDevice::init("LVS-Gateway01");
+  // Advertise a conventional LVS-prefixed name for compatibility testing. A name change alone does not guarantee Lovense Connect recognition.
+  NimBLEDevice::init("LVS-ESP32");
 
   // Create the GATT server used by the Lovense-compatible phone interface.
   NimBLEDevice::createServer();
