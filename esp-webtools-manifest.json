@@ -1,6 +1,6 @@
 {
   "name": "jonny5509/LVS-Gateway",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "funding_url": "https://github.com/jonny5509/LVS-Gateway/contributors",
   "builds": [
     {
