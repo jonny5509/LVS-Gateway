@@ -16,7 +16,7 @@ The board uses an ESP32-D0WD-V3 and a CH340 USB-to-UART bridge. Windows enumerat
 - FFF1: response/notification characteristic
 - FFF2: command/write characteristic
 
-Commands such as `DeviceType;`, `Battery;`, `Status:1;`, `Vibrate:n;`, and `PowerOff;` are handled. The implementation advertises as `LVS-Gateway01`, but a matching GATT profile alone does not guarantee official Lovense Connect recognition. Lovense device generations can use different identity and discovery behavior.
+Commands such as `DeviceType;`, `Battery;`, `Status:1;`, `Vibrate:n;`, and `PowerOff;` are handled. The implementation now advertises as `LVS-ESP32` for compatibility testing, but a matching name and GATT profile alone do not guarantee official Lovense Connect recognition. Lovense device generations can use different identity and discovery behavior.
 
 On phone connection, firmware attempts to restart advertising so the toy-control manufacturer data remains available while the phone is connected. The ESP32 has one BLE radio; behavior when advertising and maintaining the GATT connection simultaneously must be verified on the actual board.
 
@@ -59,7 +59,7 @@ pio run -e esp32dev -t upload
 ## Test on the phone first
 
 1. Install a BLE GATT inspection app such as nRF Connect for Mobile. This is only a diagnostic tool, not proof of Lovense Connect compatibility.
-2. Scan for `LVS-Gateway01` and connect.
+2. Scan for `LVS-ESP32` and connect.
 3. Inspect the `FFF0` service. Confirm `FFF1` is readable/notifiable and `FFF2` is writable.
 4. Enable notifications on `FFF1`, then write the UTF-8 text `DeviceType;` to `FFF2`. Record the response notification.
 5. Write `Vibrate:20;` to `FFF2`. Check whether the intended LoveSpouse/MuSE toy reacts. Then write `Vibrate:0;` and confirm it stops.
@@ -78,6 +78,6 @@ pio run -e esp32dev -t upload
 - Phone-side official Lovense Connect recognition is unverified.
 - The Windows serial JSON response envelopes are provisional and toy discovery is not implemented.
 - The toy path broadcasts fixed manufacturer-data patterns; it does not scan/connect to an external toy as a BLE central.
-- If a test fails, please report: which platform, app name/version, whether `LVS-Gateway01` appears, whether FFF0/FFF1/FFF2 appear, and the exact behavior when sending `Vibrate:20;`.
+- If a test fails, please report: which platform, app name/version, whether `LVS-ESP32` appears, whether FFF0/FFF1/FFF2 appear, and the exact behavior when sending `Vibrate:20;`.
 
 Treat this as an experimental test build, not a verified replacement for an official Lovense dongle.
