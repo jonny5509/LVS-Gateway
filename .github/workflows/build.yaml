@@ -48,7 +48,8 @@ jobs:
 
     - name: Merge Firmware
       run: |
-        ./generate_merge_firmware_command.py esp32dev esp32s3 | tee merge_firmware.bash
+        set -euo pipefail
+        python generate_merge_firmware_command.py esp32dev esp32s3 | tee merge_firmware.bash
         bash -ex ./merge_firmware.bash
 
     - name: Generate ESP Web Tools

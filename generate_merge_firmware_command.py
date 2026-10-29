@@ -1,52 +1,72 @@
 #!/usr/bin/env python3
 
-import argparse
 import subprocess
 import sys
 import os
+import shlex
 
 def parse_output(line):
-    parser = argparse.ArgumentParser(allow_abbrev=False)
+    tokens = shlex.split(line, posix=os.name != 'nt')
+    if os.name == 'nt':
+        tokens = [token.strip('"') for token in tokens]
+    flash_command_index = next(
+        (index for index, token in enumerate(tokens) if token in ('write_flash', 'write-flash')),
+        None
+    )
+    if flash_command_index is None:
+        return None
 
-    parser.add_argument('python_path', type=str, help="Path to python")
-    parser.add_argument('esptool_path', type=str, help="Path to esptool.py")
-    parser.add_argument('--chip', type=str, help="Chip name")
-    parser.add_argument('--port', type=str, help="Port")
-    parser.add_argument('--baud', type=int, help="Baud rate")
-    parser.add_argument('--flash_mode', type=str, help="Flash mode", default='dio')
-    parser.add_argument('--flash_freq', type=str, help="Flash frequency", default='40m')
-    parser.add_argument('--flash_size', type=str, help="Flash size", default='4MB')
-    parser.add_argument('--output', '-o', type=str, help="Output file")
+    chip_index = next(
+        (index for index, token in enumerate(tokens[:flash_command_index]) if token == '--chip'),
+        None
+    )
+    if chip_index is None or chip_index + 1 >= flash_command_index:
+        return None
 
-    args, unrecognized = parser.parse_known_args(line.split())
+    chip = tokens[chip_index + 1]
+    command_prefix = tokens[:chip_index]
+    if not command_prefix:
+        return None
 
-    binary_files = {}
-    for i in range(len(unrecognized) - 1):
-        if unrecognized[i].startswith('0x'):
-            offset, bin_path = unrecognized[i:i+2]
-            binary_files[offset] = bin_path
+    flash_options = []
+    option_names = {
+        '--flash_mode', '--flash-mode',
+        '--flash_freq', '--flash-freq',
+        '--flash_size', '--flash-size',
+    }
+    for index, token in enumerate(tokens):
+        if token in option_names and index + 1 < len(tokens):
+            flash_options.extend((token, tokens[index + 1]))
 
-    print(f'DEBUG line: {line}', file=sys.stderr)
-    print(f'DEBUG args: {args}', file=sys.stderr)
-    print(f'DEBUG unrecognized: {unrecognized}', file=sys.stderr)
-    print(f'DEBUG binary_files: {binary_files}', file=sys.stderr)
+    binary_files = []
+    index = flash_command_index + 1
+    while index < len(tokens):
+        token = tokens[index]
+        if token in ('-z', '--compress'):
+            index += 1
+        elif token in option_names:
+            index += 2
+        elif token.startswith('0x') and index + 1 < len(tokens):
+            binary_files.extend((token, tokens[index + 1]))
+            index += 2
+        else:
+            index += 1
+
+    if not binary_files:
+        return None
 
     # Extract the GitHub build number from the environment (assuming it is set)
     github_build_number = os.environ.get('GITHUB_RUN_NUMBER', '00000')
     github_owner_name, github_repo_name = os.environ.get('GITHUB_REPOSITORY', 'user/repo').split('/')
 
-    # Generate the output command
-    new_command = f'{args.python_path} ' \
-                  f'{args.esptool_path}' \
-                  f' --chip {args.chip} merge_bin ' \
-                  f'-o web/firmware/{github_owner_name}_{github_repo_name}_b{github_build_number}_{args.chip}.bin ' \
-                  f'--flash_mode {args.flash_mode} --flash_freq {args.flash_freq} --flash_size {args.flash_size} '
-
-    # Append binary files and their respective offsets to the new command
-    for offset, bin_path in binary_files.items():
-        new_command += f'{offset} "{bin_path}" '
-
-    return new_command
+    merge_command = 'merge-bin' if tokens[flash_command_index] == 'write-flash' else 'merge_bin'
+    output_file = f'web/firmware/{github_owner_name}_{github_repo_name}_b{github_build_number}_{chip}.bin'
+    command = command_prefix + ['--chip', chip, merge_command, '-o', output_file]
+    command.extend(flash_options)
+    command.extend(binary_files)
+    if os.name == 'nt':
+        return subprocess.list2cmdline(command)
+    return ' '.join(shlex.quote(token) for token in command)
 
 def generate_merge_firmware_command(pio_env=None):
     command = ["pio", "run"]
@@ -61,19 +81,19 @@ def generate_merge_firmware_command(pio_env=None):
     except subprocess.CalledProcessError as e:
         print(f"Error running pio command: {e}", file=sys.stderr)
 
-    if not completed_process.stdout:
+    output = completed_process.stdout + completed_process.stderr
+    if not output:
         print("No output received from pio command.", file=sys.stderr)
         sys.exit(1)
 
-    output_lines = completed_process.stdout.splitlines()
     relevant_lines = [
         line
-        for line 
-        in output_lines 
-        if ("/esptool.py" in line) and ("write_flash" in line)
+        for line in output.splitlines()
+        if 'write_flash' in line or 'write-flash' in line
     ]
 
     if not relevant_lines:
+        print(output, file=sys.stderr)
         print("No relevant lines found in the output.", file=sys.stderr)
         sys.exit(1)
 
