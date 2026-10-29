@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <cmath>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <muse.h>
@@ -97,20 +98,14 @@ void muse_advertising_task(void *pvParameters) {
 }
 
 void muse_set_intensity(float intensity_percent) {
-    // Convert the intensity percent to a value between 0 and 4
-    _intensity_value = static_cast<uint8_t>(std::floor(intensity_percent * 4.0f));
-
-    if (intensity_percent < 0.0) {
-        // Limit the minimum result value to 0
-        ESP_LOGW(TAG, "Intensity smaller than 0.0, received, cutting at 0.0");
+  if (std::isnan(intensity_percent) || intensity_percent <= 0.0f) {
         _intensity_value = 0;
-    } else if (isnan(intensity_percent)) {
-        ESP_LOGW(TAG, "Intensity NaN, received, cutting at 0.0");
-        _intensity_value = 0;
-    } else if (intensity_percent > 1.0) {
-        ESP_LOGW(TAG, "Intensity larger than 1.0, received, cutting at 1.0.");
-        // Limit the maximum result value to 3
-        _intensity_value = 3;
+  } else {
+    if (intensity_percent > 1.0f) {
+      ESP_LOGW(TAG, "Intensity larger than 1.0, received, cutting at 1.0.");
+      intensity_percent = 1.0f;
+    }
+    _intensity_value = static_cast<uint8_t>(std::ceil(intensity_percent * 3.0f));
     }
 
     ESP_LOGI(
