@@ -1,0 +1,25 @@
+{
+  "name": "jonny5509/LVS-Gateway",
+  "version": "0.0.6",
+  "funding_url": "https://github.com/jonny5509/LVS-Gateway/contributors",
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "firmware/jonny5509_LVS-Gateway_b6_esp32.bin",
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "firmware/jonny5509_LVS-Gateway_b6_esp32s3.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}
