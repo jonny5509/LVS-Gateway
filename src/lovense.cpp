@@ -6,6 +6,8 @@
 
 #include "muse.h"
 
+#define STATUS_LED_PIN 2
+
 /**
  * 
  * PROTOCOL SPECIFICATION SEE 
@@ -23,10 +25,12 @@ static NimBLECharacteristic *pLovenseCharacteristic = nullptr;
 
 class ConnectionEventHandler : public NimBLEServerCallbacks {
     void onConnect(NimBLEServer *pServer) {
+        digitalWrite(STATUS_LED_PIN, HIGH);
         Serial.println("Client connected to the lovense service");
     }
 
     void onDisconnect(NimBLEServer *pServer) {
+        digitalWrite(STATUS_LED_PIN, LOW);
         Serial.println("Client disconnected from the lovense service");
     }
 };
@@ -147,6 +151,9 @@ public:
 };
 
 void lovense_init() {
+    pinMode(STATUS_LED_PIN, OUTPUT);
+    digitalWrite(STATUS_LED_PIN, LOW);
+
     // Get the global server
     NimBLEServer *pServer = NimBLEDevice::getServer();
 
