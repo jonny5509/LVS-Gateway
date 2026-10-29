@@ -53,7 +53,7 @@ jobs:
 
     - name: Generate ESP Web Tools
       run: |
-        ./generate_esp_web_tools.py
+        python generate_esp_web_tools.py
         find web/
 
     - name: Deploy to GitHub Pages
